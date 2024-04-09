@@ -3,11 +3,11 @@ import os
 from datetime import datetime, timedelta
 
 from pytz import timezone
-from sqlalchemy import select, delete
+from sqlalchemy import select
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import sessionmaker
 
-from models import BusRouteStop, BusDepartureLog
+from models import BusRouteStop
 from scripts.log import get_log_data
 from utils.database import get_db_engine
 
@@ -27,7 +27,6 @@ async def main():
 async def execute_script(session):
     stop_query = select(BusRouteStop.stop_id, BusRouteStop.route_id, BusRouteStop.stop_sequence)
     session.execute(stop_query)
-    session.execute(delete(BusDepartureLog))
     days_past = os.getenv("DAYS_PAST", 1)
     for stop_id, route_id, seq in session.execute(stop_query):
         now = datetime.now(tz=timezone('Asia/Seoul'))

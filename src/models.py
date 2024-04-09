@@ -42,6 +42,7 @@ class BusRouteStop(BaseModel):
     __table_args__ = (PrimaryKeyConstraint("route_id", "stop_id", name="pk_bus_route_stop"),)
     route_id: Mapped[int] = mapped_column(ForeignKey("bus_route.route_id"), nullable=False)
     stop_id: Mapped[int] = mapped_column(ForeignKey("bus_stop.stop_id"), nullable=False)
+    start_stop_id: Mapped[int] = mapped_column(ForeignKey("bus_stop.stop_id"), nullable=False)
     stop_sequence: Mapped[int] = mapped_column(nullable=False)
 
 
