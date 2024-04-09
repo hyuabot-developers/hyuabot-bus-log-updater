@@ -165,17 +165,21 @@ async def insert_bus_route_item(db_session: Session, route_id: str):
 
 async def insert_bus_route_stop(db_session: Session):
     bus_route_stop_list = [
-        dict(route_id="216000026", stop_id="216000719", stop_sequence=12),  # 3100(한양대정문)
-        dict(route_id="216000096", stop_id="216000719", stop_sequence=12),  # 3100N(한양대정문)
-        dict(route_id="216000043", stop_id="216000719", stop_sequence=12),  # 3101(한양대정문)
-        dict(route_id="216000070", stop_id="216000719", stop_sequence=10),  # 707-1(한양대정문)
-        dict(route_id="216000061", stop_id="216000379", stop_sequence=19),  # 3102(ERICA컨벤션센터)
-        dict(route_id="216000068", stop_id="216000379", stop_sequence=21),  # 10-1(ERICA컨벤션센터)
-        dict(route_id="216000068", stop_id="216000138", stop_sequence=28),  # 10-1(상록수역3번출구)
-        dict(route_id="216000016", stop_id="216000152", stop_sequence=16),  # 62(성안길입구)
-        dict(route_id="217000014", stop_id="216000070", stop_sequence=31),  # 110(한양대입구)
-        dict(route_id="216000104", stop_id="216000070", stop_sequence=20),  # 7070(한양대입구)
-        dict(route_id="200000015", stop_id="216000070", stop_sequence=50),  # 9090(한양대입구)
+        dict(route_id="216000026", stop_id="216000719", stop_sequence=12, start_stop_id=217000283),  # 3100(한양대정문)
+        dict(route_id="216000096", stop_id="216000719", stop_sequence=12, start_stop_id=217000283),  # 3100N(한양대정문)
+        dict(route_id="216000043", stop_id="216000719", stop_sequence=12, start_stop_id=217000283),  # 3101(한양대정문)
+        dict(route_id="216000070", stop_id="216000719", stop_sequence=14, start_stop_id=217000283),  # 707-1(한양대정문)
+        dict(route_id="216000061", stop_id="216000383", stop_sequence=17, start_stop_id=233003145),  # 3102(한양대기숙사앞)
+        dict(route_id="216000061", stop_id="216000381", stop_sequence=18, start_stop_id=233003145),  # 3102(한국생산기술연구원)
+        dict(route_id="216000061", stop_id="216000379", stop_sequence=19, start_stop_id=233003145),  # 3102(ERICA컨벤션센터)
+        dict(route_id="216000068", stop_id="216000383", stop_sequence=12, start_stop_id=216000020),  # 10-1(한양대기숙사앞)
+        dict(route_id="216000068", stop_id="216000381", stop_sequence=13, start_stop_id=216000020),  # 10-1(한국생산기술연구원)
+        dict(route_id="216000068", stop_id="216000379", stop_sequence=14, start_stop_id=216000020),  # 10-1(ERICA컨벤션센터)
+        dict(route_id="216000068", stop_id="216000138", stop_sequence=21, start_stop_id=216000145),  # 10-1(상록수역3번출구)
+        dict(route_id="216000016", stop_id="216000152", stop_sequence=16, start_stop_id=216000053),  # 62(성안길입구)
+        dict(route_id="217000014", stop_id="216000070", stop_sequence=31, start_stop_id=217000066),  # 110(한양대입구)
+        dict(route_id="216000104", stop_id="216000070", stop_sequence=23, start_stop_id=217000293),  # 7070(한양대입구)
+        dict(route_id="200000015", stop_id="216000070", stop_sequence=44, start_stop_id=217000626),  # 9090(한양대입구)
     ]
     insert_statement = insert(BusRouteStop).values(bus_route_stop_list)
     insert_statement = insert_statement.on_conflict_do_update(

@@ -1,13 +1,15 @@
 import asyncio
-from collections import defaultdict
+import os
+from datetime import datetime, timedelta
 
-from sqlalchemy import select, delete
+from pytz import timezone
+from sqlalchemy import select
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import sessionmaker
 
-from models import BusRouteStop, BusRealtime
-from scripts.realtime import get_realtime_data
-from utils.database import get_db_engine, get_master_db_engine
+from models import BusRouteStop
+from scripts.log import get_log_data
+from utils.database import get_db_engine
 
 
 async def main():
@@ -19,23 +21,20 @@ async def main():
     try:
         await execute_script(session)
     except OperationalError:
-        connection = get_master_db_engine()
-        session_constructor = sessionmaker(bind=connection)
-        session = session_constructor()
-        await execute_script(session)
+        return
 
 
 async def execute_script(session):
-    stop_group = defaultdict(list)
-    stop_query = select(BusRouteStop.stop_id, BusRouteStop.route_id)
+    stop_query = select(BusRouteStop.stop_id, BusRouteStop.route_id, BusRouteStop.stop_sequence)
     session.execute(stop_query)
-    session.execute(delete(BusRealtime))
-    for stop_id, route_id in session.execute(stop_query):
-        stop_group[stop_id].append(route_id)
-    job_list = []
-    for stop_id, route_id_list in stop_group.items():
-        job_list.append(get_realtime_data(session, stop_id, route_id_list))
-    await asyncio.gather(*job_list)
+    days_past = os.getenv("DAYS_PAST", 1)
+    for stop_id, route_id, seq in session.execute(stop_query):
+        now = datetime.now(tz=timezone('Asia/Seoul'))
+        for day_past in range(int(days_past)):
+            day_param = (now - timedelta(days=(day_past + 1))).strftime(
+                "%Y-%m-%d"
+            )
+            await get_log_data(session, stop_id, route_id, seq, day_param)
     session.close()
 
 if __name__ == '__main__':
