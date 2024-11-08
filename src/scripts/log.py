@@ -54,10 +54,11 @@ async def get_log_data(
                         "vehicle_id": arrival["vehId"],
                     })
         if log_items:
+            date_query = datetime.strptime(search_date, "%Y-%m-%d").date()
             delete_statement = delete(BusDepartureLog).where(and_(
                 BusDepartureLog.stop_id == stop_id,
                 BusDepartureLog.route_id == route_id,
-                BusDepartureLog.departure_date == search_date,
+                BusDepartureLog.departure_date == date_query,
             ))
             db_session.execute(delete_statement)
             db_session.execute(
