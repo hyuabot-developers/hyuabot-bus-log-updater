@@ -50,7 +50,7 @@ async def get_log_data(
                         "stop_id": stop_id,
                         "route_id": route_id,
                         "departure_date": departure_datetime.date(),
-                        "departure_time": f'{departure_datetime.time().strftime("%H:%M")} +09:00',
+                        "departure_time": departure_datetime.time().strftime("%H:%M"),
                         "vehicle_id": arrival["vehId"],
                     })
         if log_items:
