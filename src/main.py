@@ -7,7 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import sessionmaker
 
-from models import BusRouteStop
+from models import BusRouteStop, BusDepartureLog
 from scripts.log import get_log_data
 from utils.database import get_db_engine
 
@@ -35,6 +35,11 @@ async def execute_script(session):
                 "%Y-%m-%d"
             )
             await get_log_data(session, stop_id, route_id, seq, day_param)
+    delete_statement = select(BusDepartureLog).where(
+        BusDepartureLog.departure_date < (datetime.now() - timedelta(days=7)).date()
+    )
+    session.execute(delete_statement)
+    session.commit()
     session.close()
 
 if __name__ == '__main__':
