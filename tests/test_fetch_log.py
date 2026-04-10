@@ -40,7 +40,7 @@ class TestFetchRealtimeData:
         # Database session check
         session = session_constructor()
         # Get list to fetch
-        stop_query = select(BusRouteStop.stop_id, BusRouteStop.route_id, BusRouteStop.stop_sequence)
+        stop_query = select(BusRouteStop.stop_id, BusRouteStop.route_id, BusRouteStop.stop_seq)
         session.execute(stop_query)
         days_past = os.getenv("DAYS_PAST", 1)
         for stop_id, route_id, seq in session.execute(stop_query):

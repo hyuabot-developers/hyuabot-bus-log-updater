@@ -43,7 +43,7 @@ class BusRouteStop(BaseModel):
     route_id: Mapped[int] = mapped_column(ForeignKey("bus_route.route_id"), nullable=False)
     stop_id: Mapped[int] = mapped_column(ForeignKey("bus_stop.stop_id"), nullable=False)
     start_stop_id: Mapped[int] = mapped_column(ForeignKey("bus_stop.stop_id"), nullable=False)
-    stop_sequence: Mapped[int] = mapped_column(nullable=False)
+    stop_seq: Mapped[int] = mapped_column(nullable=False)
 
 
 class BusDepartureLog(BaseModel):
