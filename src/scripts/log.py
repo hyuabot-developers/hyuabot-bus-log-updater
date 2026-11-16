@@ -9,7 +9,12 @@ from models import BusDepartureLog
 
 BASE_URL = "https://api.gbis.go.kr/ws/rest/pastarrivalservice/json"
 REQUEST_TIMEOUT = ClientTimeout(total=6.0)
-REQUEST_HEADERS = {"User-Agent": "hyuabot-bus-log-updater/1.0", "Accept": "application/json"}
+REQUEST_HEADERS = {
+    # The GBIS gateway returns an HTML block page for non-browser user agents.
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                  "(KHTML, like Gecko) Chrome/120.0 Safari/537.36",
+    "Accept": "application/json",
+}
 MAX_ATTEMPTS = 6
 RETRY_BACKOFF_SECONDS = 1.0
 
