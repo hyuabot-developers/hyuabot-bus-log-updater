@@ -28,7 +28,7 @@ async def fetch_log_items(
     search_date: str,
 ) -> list[dict] | None:
     """Fetch departure logs. Returns None when every attempt failed."""
-    params = {
+    params: dict[str, str | int] = {
         "serviceKey": "1234567890",
         "stationId": stop_id,
         "routeId": route_id,
