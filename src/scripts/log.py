@@ -8,9 +8,10 @@ from sqlalchemy.orm import Session
 from models import BusDepartureLog
 
 BASE_URL = "https://api.gbis.go.kr/ws/rest/pastarrivalservice/json"
-REQUEST_TIMEOUT = ClientTimeout(total=15.0)
-MAX_ATTEMPTS = 4
-RETRY_BACKOFF_SECONDS = 1.5
+REQUEST_TIMEOUT = ClientTimeout(total=6.0)
+REQUEST_HEADERS = {"User-Agent": "hyuabot-bus-log-updater/1.0", "Accept": "application/json"}
+MAX_ATTEMPTS = 6
+RETRY_BACKOFF_SECONDS = 1.0
 
 
 async def fetch_log_items(

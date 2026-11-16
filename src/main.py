@@ -9,10 +9,10 @@ from sqlalchemy import select
 from sqlalchemy.orm import sessionmaker
 
 from models import BusRouteStop
-from scripts.log import fetch_log_items, save_log_items, REQUEST_TIMEOUT
+from scripts.log import fetch_log_items, save_log_items, REQUEST_HEADERS, REQUEST_TIMEOUT
 from utils.database import get_db_engine
 
-CONCURRENCY = int(os.getenv("CONCURRENCY", 8))
+CONCURRENCY = int(os.getenv("CONCURRENCY", 3))
 
 
 async def main() -> int:
@@ -43,7 +43,7 @@ async def execute_script(session) -> int:
             return await fetch_log_items(http_session, *job)
 
     connector = TCPConnector(limit=CONCURRENCY)
-    async with ClientSession(timeout=REQUEST_TIMEOUT, connector=connector) as http_session:
+    async with ClientSession(timeout=REQUEST_TIMEOUT, headers=REQUEST_HEADERS, connector=connector) as http_session:
         tasks = [asyncio.create_task(fetch(job)) for job in jobs]
         for job, task in zip(jobs, tasks):
             stop_id, route_id, _, date = job
