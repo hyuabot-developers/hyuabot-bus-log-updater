@@ -1,71 +1,95 @@
 import asyncio
 from datetime import datetime
 
-from aiohttp import ClientTimeout, ClientSession
-from pytz import timezone
+from aiohttp import ClientError, ClientSession, ClientTimeout
 from sqlalchemy import delete, and_, insert
 from sqlalchemy.orm import Session
 
 from models import BusDepartureLog
 
+# The GBIS gateway WAF drops HTTPS requests coming from the container TLS stack.
+BASE_URL = "http://api.gbis.go.kr/ws/rest/pastarrivalservice/json"
+REQUEST_TIMEOUT = ClientTimeout(total=6.0)
+REQUEST_HEADERS = {
+    # The GBIS gateway returns an HTML block page for non-browser user agents.
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                  "(KHTML, like Gecko) Chrome/120.0 Safari/537.36",
+    "Accept": "application/json",
+}
+MAX_ATTEMPTS = 6
+RETRY_BACKOFF_SECONDS = 1.0
 
-async def get_log_data(
-    db_session: Session,
-    stop_id: str,
-    route_id: str,
+
+async def fetch_log_items(
+    http_session: ClientSession,
+    stop_id: int,
+    route_id: int,
     seq: int,
     search_date: str,
-) -> None:
-    base_url = "https://api.gbis.go.kr/ws/rest/pastarrivalservice/json"
-    params = {
+) -> list[dict] | None:
+    """Fetch departure logs. Returns None when every attempt failed."""
+    params: dict[str, str | int] = {
         "serviceKey": "1234567890",
         "stationId": stop_id,
         "routeId": route_id,
         "staOrder": seq,
         "sDay": search_date,
     }
-    log_items: list[dict] = []
-    timeout = ClientTimeout(total=3.0)
+    for attempt in range(1, MAX_ATTEMPTS + 1):
+        try:
+            async with http_session.get(BASE_URL, params=params) as response:
+                response.raise_for_status()
+                response_json = await response.json(content_type=None)
+            msg_body = (response_json or {}).get("response", {}).get("msgBody") or {}
+            arrival_list = msg_body.get("pastArrivalList") or []
+            if isinstance(arrival_list, dict):
+                arrival_list = [arrival_list]
+            return _parse_items(arrival_list, stop_id, route_id)
+        except (asyncio.TimeoutError, ClientError, ValueError, AttributeError) as e:
+            if attempt == MAX_ATTEMPTS:
+                print(f"Fetch failed stop={stop_id} route={route_id} "
+                      f"date={search_date}: {type(e).__name__} {e}")
+                return None
+            await asyncio.sleep(RETRY_BACKOFF_SECONDS * attempt)
+    return None
+
+
+def _parse_items(arrival_list: list[dict], stop_id: int, route_id: int) -> list[dict]:
+    log_items: dict[str, dict] = {}
+    for arrival in arrival_list:
+        departure_datetime_str = arrival.get("depatureDate") or arrival.get("arrivalDate")
+        if not departure_datetime_str:
+            continue
+        departure_datetime = datetime.strptime(departure_datetime_str, "%Y-%m-%d %H:%M")
+        departure_time = f'{departure_datetime.time().strftime("%H:%M")} +09:00'
+        # Primary key is (route, stop, date, time): drop duplicates in one response.
+        log_items[f"{departure_datetime.date()} {departure_time}"] = {
+            "stop_id": stop_id,
+            "route_id": route_id,
+            "departure_date": departure_datetime.date(),
+            "departure_time": departure_time,
+            "vehicle_id": arrival["vehId"],
+        }
+    return list(log_items.values())
+
+
+def save_log_items(
+    db_session: Session,
+    stop_id: int,
+    route_id: int,
+    search_date: str,
+    log_items: list[dict],
+) -> None:
+    if not log_items:
+        return
     try:
-        async with (ClientSession(timeout=timeout) as session):
-            url = f'{base_url}?{"&".join([f"{key}={value}" for key, value in params.items()])}'
-            async with session.get(url) as response:
-                response_json = await response.json()
-                arrival_list = response_json \
-                    .get("response", {}).get("msgBody", {}).get("pastArrivalList", [])
-                if len(arrival_list) == 0:
-                    print(url)
-                for arrival in arrival_list:
-                    departure_datetime_str = arrival.get("depatureDate")
-                    if not departure_datetime_str:
-                        departure_datetime_str = arrival.get("arrivalDate")
-                    if not departure_datetime_str:
-                        continue
-                    departure_datetime = datetime.strptime(
-                        departure_datetime_str,
-                        "%Y-%m-%d %H:%M",
-                    )
-                    departure_datetime.replace(tzinfo=timezone('Asia/Seoul'))
-                    log_items.append({
-                        "stop_id": stop_id,
-                        "route_id": route_id,
-                        "departure_date": departure_datetime.date(),
-                        "departure_time": f'{departure_datetime.time().strftime("%H:%M")} +09:00',
-                        "vehicle_id": arrival["vehId"],
-                    })
-        if log_items:
-            delete_statement = delete(BusDepartureLog).where(and_(
-                BusDepartureLog.stop_id == stop_id,
-                BusDepartureLog.route_id == route_id,
-                BusDepartureLog.departure_date == search_date,
-            ))
-            db_session.execute(delete_statement)
-            db_session.execute(
-                insert(BusDepartureLog),
-                log_items,
-            )
+        db_session.execute(delete(BusDepartureLog).where(and_(
+            BusDepartureLog.stop_id == stop_id,
+            BusDepartureLog.route_id == route_id,
+            BusDepartureLog.departure_date == search_date,
+        )))
+        db_session.execute(insert(BusDepartureLog), log_items)
         db_session.commit()
-    except asyncio.exceptions.TimeoutError:
-        print("TimeoutError", url)
-    except AttributeError:
-        print("AttributeError", url)
+    except Exception:
+        db_session.rollback()
+        raise
