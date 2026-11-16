@@ -7,7 +7,8 @@ from sqlalchemy.orm import Session
 
 from models import BusDepartureLog
 
-BASE_URL = "https://api.gbis.go.kr/ws/rest/pastarrivalservice/json"
+# The GBIS gateway WAF drops HTTPS requests coming from the container TLS stack.
+BASE_URL = "http://api.gbis.go.kr/ws/rest/pastarrivalservice/json"
 REQUEST_TIMEOUT = ClientTimeout(total=6.0)
 REQUEST_HEADERS = {
     # The GBIS gateway returns an HTML block page for non-browser user agents.
